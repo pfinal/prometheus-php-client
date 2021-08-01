@@ -22,19 +22,19 @@ interface Adapter
      * @param mixed[] $data
      * @return void
      */
-    public function updateHistogram(array $data): void;
+    public function updateHistogram(array $data);
 
     /**
      * @param mixed[] $data
      * @return void
      */
-    public function updateGauge(array $data): void;
+    public function updateGauge(array $data);
 
     /**
      * @param mixed[] $data
      * @return void
      */
-    public function updateCounter(array $data): void;
+    public function updateCounter(array $data);
 
     /**
      * Removes all previously stored metrics from underlying storage
@@ -42,5 +42,5 @@ interface Adapter
      * @throws StorageException
      * @return void
      */
-    public function wipeStorage(): void;
+    public function wipeStorage();
 }

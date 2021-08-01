@@ -7,6 +7,7 @@ namespace Prometheus;
 use Prometheus\Exception\MetricNotFoundException;
 use Prometheus\Exception\MetricsRegistrationException;
 use Prometheus\Storage\Adapter;
+use Prometheus\Storage\InMemory;
 use Prometheus\Storage\Redis;
 
 class CollectorRegistry implements RegistryInterface
@@ -61,6 +62,7 @@ class CollectorRegistry implements RegistryInterface
     public static function getDefault(): CollectorRegistry
     {
         return self::$defaultRegistry ?? (self::$defaultRegistry = new self(new Redis()));
+//        return self::$defaultRegistry ?? (self::$defaultRegistry = new self(new InMemory()));
     }
 
     /**
@@ -207,7 +209,8 @@ class CollectorRegistry implements RegistryInterface
         string $help,
         array $labels = [],
         array $buckets = null
-    ): Histogram {
+    ): Histogram
+    {
         $metricIdentifier = self::metricIdentifier($namespace, $name);
         if (isset($this->histograms[$metricIdentifier])) {
             throw new MetricsRegistrationException("Metric already registered");
@@ -255,7 +258,8 @@ class CollectorRegistry implements RegistryInterface
         string $help,
         array $labels = [],
         array $buckets = null
-    ): Histogram {
+    ): Histogram
+    {
         try {
             $histogram = $this->getHistogram($namespace, $name);
         } catch (MetricNotFoundException $e) {
@@ -275,7 +279,7 @@ class CollectorRegistry implements RegistryInterface
         return $namespace . ":" . $name;
     }
 
-    private function registerDefaultMetrics(): void
+    private function registerDefaultMetrics()
     {
         $this->defaultGauges['php_info_gauge'] = $this->getOrRegisterGauge(
             "",

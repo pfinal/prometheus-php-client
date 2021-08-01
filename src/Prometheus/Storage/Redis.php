@@ -19,12 +19,15 @@ class Redis implements Adapter
      * @var mixed[]
      */
     private static $defaultOptions = [
+//        'host' => '127.0.0.1',
+//        'port' => 6379,
+//        'timeout' => 0.1,
+//        'read_timeout' => '10',
+//        'persistent_connections' => false,
+//        'password' => null,
+        'scheme' => 'tcp',
         'host' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => 0.1,
-        'read_timeout' => '10',
-        'persistent_connections' => false,
-        'password' => null,
     ];
 
     /**
@@ -38,7 +41,7 @@ class Redis implements Adapter
     private $options = [];
 
     /**
-     * @var \Redis
+     * @var \Predis\Client
      */
     private $redis;
 
@@ -54,15 +57,15 @@ class Redis implements Adapter
     public function __construct(array $options = [])
     {
         $this->options = array_merge(self::$defaultOptions, $options);
-        $this->redis = new \Redis();
+        $this->redis = new \Predis\Client($this->options);
     }
 
     /**
-     * @param \Redis $redis
+     * @param \Predis\Client $redis
      * @return self
      * @throws StorageException
      */
-    public static function fromExistingConnection(\Redis $redis): self
+    public static function fromExistingConnection(\Predis\Client $redis): self
     {
         if ($redis->isConnected() === false) {
             throw new StorageException('Connection to Redis server not established');
@@ -78,7 +81,7 @@ class Redis implements Adapter
     /**
      * @param mixed[] $options
      */
-    public static function setDefaultOptions(array $options): void
+    public static function setDefaultOptions(array $options)
     {
         self::$defaultOptions = array_merge(self::$defaultOptions, $options);
     }
@@ -86,16 +89,16 @@ class Redis implements Adapter
     /**
      * @param string $prefix
      */
-    public static function setPrefix(string $prefix): void
+    public static function setPrefix(string $prefix)
     {
         self::$prefix = $prefix;
     }
 
     /**
-     * @deprecated use replacement method wipeStorage from Adapter interface
      * @throws StorageException
+     * @deprecated use replacement method wipeStorage from Adapter interface
      */
-    public function flushRedis(): void
+    public function flushRedis()
     {
         $this->wipeStorage();
     }
@@ -103,13 +106,14 @@ class Redis implements Adapter
     /**
      * @inheritDoc
      */
-    public function wipeStorage(): void
+    public function wipeStorage()
     {
         $this->ensureOpenConnection();
 
         $searchPattern = "";
 
-        $globalPrefix = $this->redis->getOption(\Redis::OPT_PREFIX);
+//        $globalPrefix = $this->redis->getOption(\Redis::OPT_PREFIX);
+        $globalPrefix = '';
         // @phpstan-ignore-next-line false positive, phpstan thinks getOptions returns int
         if (is_string($globalPrefix)) {
             $searchPattern .= $globalPrefix;
@@ -130,8 +134,8 @@ repeat
 until cursor == "0"
 LUA
             ,
-            [$searchPattern],
-            0
+            0,
+            $searchPattern
         );
     }
 
@@ -156,54 +160,54 @@ LUA
     /**
      * @throws StorageException
      */
-    private function ensureOpenConnection(): void
+    private function ensureOpenConnection()
     {
-        if ($this->connectionInitialized === true) {
-            return;
-        }
+//        if ($this->connectionInitialized === true) {
+//            return;
+//        }
+//
+//        $this->connectToServer();
 
-        $this->connectToServer();
+//        if ($this->options['password'] !== null) {
+//            $this->redis->auth($this->options['password']);
+//        }
+//
+//        if (isset($this->options['database'])) {
+//            $this->redis->select($this->options['database']);
+//        }
 
-        if ($this->options['password'] !== null) {
-            $this->redis->auth($this->options['password']);
-        }
-
-        if (isset($this->options['database'])) {
-            $this->redis->select($this->options['database']);
-        }
-
-        $this->redis->setOption(\Redis::OPT_READ_TIMEOUT, $this->options['read_timeout']);
+//        $this->redis->setOption(\Redis::OPT_READ_TIMEOUT, $this->options['read_timeout']);
     }
 
     /**
      * @throws StorageException
      */
-    private function connectToServer(): void
+    private function connectToServer()
     {
-        try {
-            $connection_successful = false;
-            if ($this->options['persistent_connections'] !== false) {
-                $connection_successful = $this->redis->pconnect(
-                    $this->options['host'],
-                    (int) $this->options['port'],
-                    (float) $this->options['timeout']
-                );
-            } else {
-                $connection_successful = $this->redis->connect($this->options['host'], (int) $this->options['port'], (float) $this->options['timeout']);
-            }
-            if (!$connection_successful) {
-                throw new StorageException("Can't connect to Redis server", 0);
-            }
-        } catch (\RedisException $e) {
-            throw new StorageException("Can't connect to Redis server", 0, $e);
-        }
+//        try {
+//            $connection_successful = false;
+//            if ($this->options['persistent_connections'] !== false) {
+//                $connection_successful = $this->redis->pconnect(
+//                    $this->options['host'],
+//                    (int)$this->options['port'],
+//                    (float)$this->options['timeout']
+//                );
+//            } else {
+//                $connection_successful = $this->redis->connect($this->options['host'], (int)$this->options['port'], (float)$this->options['timeout']);
+//            }
+//            if (!$connection_successful) {
+//                throw new StorageException("Can't connect to Redis server", 0);
+//            }
+//        } catch (\RedisException $e) {
+//            throw new StorageException("Can't connect to Redis server", 0, $e);
+//        }
     }
 
     /**
      * @param mixed[] $data
      * @throws StorageException
      */
-    public function updateHistogram(array $data): void
+    public function updateHistogram(array $data)
     {
         $this->ensureOpenConnection();
         $bucketToIncrease = '+Inf';
@@ -227,15 +231,13 @@ end
 return result
 LUA
             ,
-            [
-                $this->toMetricKey($data),
-                self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
-                json_encode(['b' => 'sum', 'labelValues' => $data['labelValues']]),
-                json_encode(['b' => $bucketToIncrease, 'labelValues' => $data['labelValues']]),
-                $data['value'],
-                json_encode($metaData),
-            ],
-            2
+            2,
+            $this->toMetricKey($data),
+            self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+            json_encode(['b' => 'sum', 'labelValues' => $data['labelValues']]),
+            json_encode(['b' => $bucketToIncrease, 'labelValues' => $data['labelValues']]),
+            $data['value'],
+            json_encode($metaData)
         );
     }
 
@@ -243,7 +245,7 @@ LUA
      * @param mixed[] $data
      * @throws StorageException
      */
-    public function updateGauge(array $data): void
+    public function updateGauge(array $data)
     {
         $this->ensureOpenConnection();
         $metaData = $data;
@@ -265,15 +267,13 @@ else
 end
 LUA
             ,
-            [
-                $this->toMetricKey($data),
-                self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
-                $this->getRedisCommand($data['command']),
-                json_encode($data['labelValues']),
-                $data['value'],
-                json_encode($metaData),
-            ],
-            2
+            2,
+            $this->toMetricKey($data),
+            self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+            $this->getRedisCommand($data['command']),
+            json_encode($data['labelValues']),
+            $data['value'],
+            json_encode($metaData)
         );
     }
 
@@ -281,7 +281,7 @@ LUA
      * @param mixed[] $data
      * @throws StorageException
      */
-    public function updateCounter(array $data): void
+    public function updateCounter(array $data)
     {
         $this->ensureOpenConnection();
         $metaData = $data;
@@ -296,15 +296,14 @@ end
 return result
 LUA
             ,
-            [
-                $this->toMetricKey($data),
-                self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
-                $this->getRedisCommand($data['command']),
-                $data['value'],
-                json_encode($data['labelValues']),
-                json_encode($metaData),
-            ],
-            2
+            2,
+            $this->toMetricKey($data),
+            self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+            $this->getRedisCommand($data['command']),
+            $data['value'],
+            json_encode($data['labelValues']),
+            json_encode($metaData)
+
         );
     }
 
@@ -317,7 +316,7 @@ LUA
         sort($keys);
         $histograms = [];
         foreach ($keys as $key) {
-            $raw = $this->redis->hGetAll(str_replace($this->redis->_prefix(''), '', $key));
+            $raw = $this->redis->hGetAll( $key);
             $histogram = json_decode($raw['__meta'], true);
             unset($raw['__meta']);
             $histogram['samples'] = [];
@@ -394,7 +393,7 @@ LUA
         sort($keys);
         $gauges = [];
         foreach ($keys as $key) {
-            $raw = $this->redis->hGetAll(str_replace($this->redis->_prefix(''), '', $key));
+            $raw = $this->redis->hGetAll( $key);
             $gauge = json_decode($raw['__meta'], true);
             unset($raw['__meta']);
             $gauge['samples'] = [];
@@ -423,7 +422,7 @@ LUA
         sort($keys);
         $counters = [];
         foreach ($keys as $key) {
-            $raw = $this->redis->hGetAll(str_replace($this->redis->_prefix(''), '', $key));
+            $raw = $this->redis->hGetAll($key);
             $counter = json_decode($raw['__meta'], true);
             unset($raw['__meta']);
             $counter['samples'] = [];
