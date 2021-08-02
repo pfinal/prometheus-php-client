@@ -82,7 +82,7 @@ class CollectorRegistry implements RegistryInterface
      * @return Gauge
      * @throws MetricsRegistrationException
      */
-    public function registerGauge(string $namespace, string $name, string $help, $labels = []): Gauge
+    public function registerGauge(string $namespace, string $name, string $help, array $labels = []): Gauge
     {
         $metricIdentifier = self::metricIdentifier($namespace, $name);
         if (isset($this->gauges[$metricIdentifier])) {
@@ -123,7 +123,7 @@ class CollectorRegistry implements RegistryInterface
      * @return Gauge
      * @throws MetricsRegistrationException
      */
-    public function getOrRegisterGauge(string $namespace, string $name, string $help, $labels = []): Gauge
+    public function getOrRegisterGauge(string $namespace, string $name, string $help, array $labels = []): Gauge
     {
         try {
             $gauge = $this->getGauge($namespace, $name);
@@ -142,7 +142,7 @@ class CollectorRegistry implements RegistryInterface
      * @return Counter
      * @throws MetricsRegistrationException
      */
-    public function registerCounter(string $namespace, string $name, string $help, $labels = []): Counter
+    public function registerCounter(string $namespace, string $name, string $help, array $labels = []): Counter
     {
         $metricIdentifier = self::metricIdentifier($namespace, $name);
         if (isset($this->counters[$metricIdentifier])) {
@@ -183,7 +183,7 @@ class CollectorRegistry implements RegistryInterface
      * @return Counter
      * @throws MetricsRegistrationException
      */
-    public function getOrRegisterCounter(string $namespace, string $name, string $help, $labels = []): Counter
+    public function getOrRegisterCounter(string $namespace, string $name, string $help, array $labels = []): Counter
     {
         try {
             $counter = $this->getCounter($namespace, $name);
